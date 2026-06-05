@@ -14,7 +14,7 @@
 ## Code Review
 
 **Reviewed:** *Ilyas Ibrahim*
-**Link to my review:** 
+**Link to my review:** https://github.com/Ilyas9805/media-tracker-android/pull/3
 
 ### What I Looked At
 
