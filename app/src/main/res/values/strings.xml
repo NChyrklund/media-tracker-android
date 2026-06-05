@@ -4,10 +4,16 @@
 
     <!-- Auth -->
     <string name="email_label">Email</string>
+    <string name="create_account">Create Account</string>
+    <string name="create_account_tagline">Join the community</string>
     <string name="password_label">Password</string>
+    <string name="confirm_password_label">Confirm Password</string>
+    <string name="display_name_label">Display Name</string>
+    <string name="username_label">Username</string>
     <string name="sign_in_button">Sign In</string>
-    <string name="register_prompt">Don\'t have an account? Register</string>
-    <string name="register_not_implemented">Create Account is not implemented yet.</string>
+    <string name="sign_up_button">Sign Up</string>
+    <string name="register_prompt">Don\'t have an account? Sign Up</string>
+    <string name="login_prompt">Already have an account? Log In</string>
 
     <!-- Navigation -->
     <string name="nav_feed">Feed</string>
@@ -25,6 +31,8 @@
     <string name="filter_books">Books</string>
     <string name="filter_movies">Movies</string>
     <string name="filter_shows">Shows</string>
+    <string name="filter_comics">Comics</string>
+    <string name="filter_albums">Albums</string>
     <string name="library_empty">Nothing here yet.\nSearch for something to add.</string>
     <string name="library_items_count">%1$d items</string>
     <string name="library_item_count">%1$d item</string>
