@@ -18,10 +18,10 @@ class UserRepository {
         .create(ApiService::class.java)
 
     suspend fun createAccount(
-        displayName: String,
-        username: String,
-        email: String,
-        password: String
+        displayName: String = "",
+        username: String = "",
+        email: String = "",
+        password: String = ""
     ) {
         val createUserRequest = CreateUserRequest(
             email = email,
