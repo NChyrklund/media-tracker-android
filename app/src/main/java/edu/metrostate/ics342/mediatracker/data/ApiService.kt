@@ -12,3 +12,6 @@ interface ApiService {
     @POST("tokens")
     suspend fun login(@Body request: TokenRequest): TokenResponse
 }
+
+annotation class TokenResponse
+annotation class CreateUserResponse
