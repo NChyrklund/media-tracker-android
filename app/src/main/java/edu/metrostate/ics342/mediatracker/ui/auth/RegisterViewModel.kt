@@ -21,7 +21,7 @@ class RegisterViewModel(
 
     fun onSignUpClicked() {
         viewModelScope.launch {
-            userRepository.createAccount() //Need to pass values in future
+            userRepository.createAccount()
         }
     }
 }
