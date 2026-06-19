@@ -206,14 +206,3 @@ fun RegisterScreen(
         }
     }
 }
-
-@Preview(showBackground = true)
-@Composable
-fun RegisterScreenPreview() {
-    MediaTrackerTheme {
-        RegisterScreen(
-            onRegisterSuccess = {},
-            onNavigateToLogin = {}
-        )
-    }
-}

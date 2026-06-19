@@ -1,36 +1,32 @@
 package edu.metrostate.ics342.mediatracker.data
 
-import edu.metrostate.ics342.mediatracker.data.model.CreateUserRequest
-import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
-import retrofit2.Retrofit
-import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import edu.metrostate.ics342.mediatracker.data.model.UserProfile
 
-const val baseURL = "https://wjtzkgpxmxtzcczzbvrz.supabase.co/functions/v1/"
+interface UserRepository {
+    suspend fun register(
+        email: String,
+        password: String,
+        username: String,
+        displayName: String
+    ): RegisterResult
 
-class UserRepository {
-    private val api: ApiService = Retrofit.Builder()
-        .baseUrl(baseURL)
-        .addConverterFactory(
-            Json.asConverterFactory(
-                "application/json; charset=utf-8".toMediaType()))
-        .build()
-        .create(ApiService::class.java)
+    suspend fun login(email: String, password: String): LoginResult
+}
 
-    suspend fun createAccount(
-        displayName: String = "",
-        username: String = "",
-        email: String = "",
-        password: String = ""
-    ) {
-        val createUserRequest = CreateUserRequest(
-            email = email,
-            password = password,
-            username = username,
-            displayName = displayName,
-            clientId = "",
-            clientSecret = ""
-        )
-        api.createUser(createUserRequest)
-    }
+sealed interface RegisterResult {
+    data object Success : RegisterResult
+    data object Conflict : RegisterResult
+    data object NetworkError : RegisterResult
+    data object UnknownError : RegisterResult
+}
+
+sealed interface LoginResult {
+    data class Success(
+        val accessToken: String,
+        val refreshToken: String,
+        val user: UserProfile
+    ) : LoginResult
+    data object InvalidCredentials : LoginResult
+    data object NetworkError : LoginResult
+    data object UnknownError : LoginResult
 }
