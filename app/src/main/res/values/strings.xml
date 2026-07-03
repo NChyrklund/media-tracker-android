@@ -106,5 +106,7 @@
     <string name="media_unknown_author">Unknown Author</string>
     <string name="media_unknown_director">Unknown Director</string>
     <string name="media_unknown_creator">Unknown Creator</string>
+    <string name="media_wishlist_label">+ Want To</string>
+    <string name="media_save_label">♡ Save</string>
 
 </resources>

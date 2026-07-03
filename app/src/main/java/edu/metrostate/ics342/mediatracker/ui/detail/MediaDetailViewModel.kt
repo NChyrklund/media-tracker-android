@@ -12,4 +12,12 @@ class MediaDetailViewModel : ViewModel() {
     val mediaId: StateFlow<Int> = _mediaId.asStateFlow()
 
     fun setMediaId(id: Int) { _mediaId.value = id }
+
+    fun onWishlistClick() {
+        // TODO give functionality
+    }
+
+    fun onSaveClick() {
+        // TODO give functionality
+    }
 }
