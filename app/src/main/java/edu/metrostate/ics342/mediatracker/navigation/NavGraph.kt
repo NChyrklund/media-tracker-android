@@ -12,7 +12,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
-import edu.metrostate.ics342.mediatracker.data.model.FakeMedia
 import edu.metrostate.ics342.mediatracker.ui.activity.ActivityFeedScreen
 import edu.metrostate.ics342.mediatracker.ui.auth.LoginScreen
 import edu.metrostate.ics342.mediatracker.ui.auth.RegisterScreen
@@ -128,11 +127,7 @@ fun MediaTrackerNavGraph(navController: NavHostController) {
                 MediaDetailScreen(
                     mediaId        = mediaId,
                     onNavigateBack = { navController.popBackStack() },
-                    onBack       = { navController.popBackStack() },
-                    onWriteReview  = { id -> navController.navigate("write_review/$id") },
-                    onOverflow = { navController.popBackStack() },
-                    media = FakeMedia.fakeMedia
-
+                    onWriteReview  = { id -> navController.navigate("write_review/$id") }
                 )
             }
 
