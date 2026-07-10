@@ -14,7 +14,7 @@
 ## Code Review
 
 **Reviewed:** *Sadiq Ahmed*
-**Link to my review:** https://github.com/ahmedsadiq04/media-tracker-android/pull/10
+**Link to my review:** https://github.com/ahmedsadiq04/media-tracker-android/pull/10#pullrequestreview-4668168912
 
 ---
 
