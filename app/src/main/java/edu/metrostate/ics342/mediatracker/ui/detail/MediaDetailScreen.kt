@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.StarHalf
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +26,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import edu.metrostate.ics342.mediatracker.R
 import edu.metrostate.ics342.mediatracker.data.FakeMediaRepository
@@ -41,11 +44,15 @@ import kotlin.math.roundToInt
 fun MediaDetailScreen(
     mediaId: Int,
     onNavigateBack: () -> Unit,
-    onWriteReview: (Int) -> Unit
+    onWriteReview: (Int) -> Unit,
+    viewModel: MediaDetailViewModel = viewModel()
 ) {
-    // Not wired to the API yet — show the hardcoded MediaDetail sample.
-    val detail = FakeMediaRepository.sampleMediaDetail
+    val detail by viewModel.details.collectAsStateWithLifecycle()
     val reviews = FakeMediaRepository.sampleReviews
+
+    LaunchedEffect(mediaId) {
+        viewModel.setMediaId(mediaId)
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
@@ -83,22 +90,26 @@ fun MediaDetailScreen(
 
                 Spacer(Modifier.height(14.dp))
 
-                Text(
-                    text = detail.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
+                detail?.title?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
                 Spacer(Modifier.height(2.dp))
-                Text(
-                    text = detail.creatorCredit(LocalContext.current),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                detail?.creatorCredit(LocalContext.current)?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
                 Spacer(Modifier.height(8.dp))
                 RatingSummary(
-                    averageRating = detail.averageRating,
-                    ratingCount = detail.ratingCount
+                    averageRating = detail?.averageRating,
+                    ratingCount = detail?.ratingCount
                 )
             }
 
@@ -132,14 +143,16 @@ fun MediaDetailScreen(
             Spacer(Modifier.height(20.dp))
 
             // ── About ────────────────────────────────────────────────────────
-            if (!detail.description.isNullOrBlank()) {
+            if (!detail?.description.isNullOrBlank()) {
                 SectionCaption(stringResource(R.string.detail_about))
                 Spacer(Modifier.height(6.dp))
-                Text(
-                    text = detail.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                detail?.description?.let {
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Spacer(Modifier.height(20.dp))
             }
 
@@ -153,11 +166,13 @@ fun MediaDetailScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                SectionCaption(
-                    text = stringResource(R.string.detail_reviews_count, detail.reviewCount),
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(onClick = { onWriteReview(detail.id) }) {
+                detail?.reviewCount?.let {
+                    SectionCaption(
+                        text = stringResource(R.string.detail_reviews_count, it),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                TextButton(onClick = { onWriteReview(detail?.id ?: 0) }) {
                     Text(stringResource(R.string.detail_write_review))
                 }
             }
@@ -182,18 +197,18 @@ fun MediaDetailScreen(
 }
 
 @Composable
-private fun MediaCover(detail: MediaDetail) {
-    val containerColor = when (detail.mediaType) {
+private fun MediaCover(detail: MediaDetail?) {
+    val containerColor = when (detail?.mediaType) {
         "book"  -> MaterialTheme.colorScheme.primaryContainer
         "movie" -> MovieContainer
         else    -> MaterialTheme.colorScheme.secondaryContainer
     }
-    val iconTint = when (detail.mediaType) {
+    val iconTint = when (detail?.mediaType) {
         "book"  -> MaterialTheme.colorScheme.onPrimaryContainer
         "movie" -> OnMovieContainer
         else    -> MaterialTheme.colorScheme.secondary
     }
-    val placeholder = when (detail.mediaType) {
+    val placeholder = when (detail?.mediaType) {
         "book"  -> R.drawable.menu_book_24px
         "movie" -> R.drawable.movie_24px
         else    -> R.drawable.tv_24px
@@ -206,7 +221,7 @@ private fun MediaCover(detail: MediaDetail) {
             .background(containerColor),
         contentAlignment = Alignment.Center
     ) {
-        if (detail.coverUrl != null) {
+        if (detail?.coverUrl != null) {
             AsyncImage(
                 model = detail.coverUrl,
                 contentDescription = detail.title,
@@ -225,8 +240,8 @@ private fun MediaCover(detail: MediaDetail) {
 }
 
 @Composable
-private fun RatingSummary(averageRating: Float, ratingCount: Int) {
-    if (ratingCount <= 0) {
+private fun RatingSummary(averageRating: Float?, ratingCount: Int?) {
+    if (ratingCount == null || ratingCount <= 0) {
         Text(
             text = stringResource(R.string.detail_not_yet_rated),
             style = MaterialTheme.typography.bodySmall,
@@ -255,8 +270,10 @@ private fun RatingSummary(averageRating: Float, ratingCount: Int) {
 
 /** Renders 5 stars (full / half / empty) for a 0–5 [rating], in the amber accent. */
 @Composable
-private fun StarRow(rating: Float, starSize: Int = 16) {
-    val rounded = (rating * 2).roundToInt()          // nearest half-star
+private fun StarRow(rating: Float?, starSize: Int = 16) {
+    val rating = rating ?: 0.0f
+    val rounded = (rating * 2.0).roundToInt()
+
     Row {
         for (i in 1..5) {
             val icon = when {
@@ -275,10 +292,10 @@ private fun StarRow(rating: Float, starSize: Int = 16) {
 }
 
 @Composable
-private fun StatGrid(detail: MediaDetail) {
+private fun StatGrid(detail: MediaDetail?) {
     val stats = buildList {
-        detail.publishedYear?.let { add(stringResource(R.string.detail_stat_year) to it.toString()) }
-        when (detail.mediaType) {
+        detail?.publishedYear?.let { add(stringResource(R.string.detail_stat_year) to it.toString()) }
+        when (detail?.mediaType) {
             "book" -> detail.pageCount?.let {
                 add(stringResource(R.string.detail_stat_pages) to it.toString())
             }
@@ -289,7 +306,7 @@ private fun StatGrid(detail: MediaDetail) {
                 add(stringResource(R.string.detail_stat_seasons) to it.toString())
             }
         }
-        detail.genres.firstOrNull()?.let {
+        detail?.genres?.firstOrNull()?.let {
             add(stringResource(R.string.detail_stat_genre) to it)
         }
     }

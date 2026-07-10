@@ -1,8 +1,10 @@
 package edu.metrostate.ics342.mediatracker.data.network
 
 import edu.metrostate.ics342.mediatracker.data.model.Media
+import edu.metrostate.ics342.mediatracker.data.model.MediaDetail
 import retrofit2.Response
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface MediaApiService {
@@ -13,4 +15,9 @@ interface MediaApiService {
         @Query("limit") limit: Int = 20,
         @Query("after") after: String? = null
     ): Response<List<Media>>
+
+    @GET("media/{media_id}")
+    suspend fun getMedia(
+        @Path("media_id") mediaID: Int? = null
+    ): Response<MediaDetail>
 }
