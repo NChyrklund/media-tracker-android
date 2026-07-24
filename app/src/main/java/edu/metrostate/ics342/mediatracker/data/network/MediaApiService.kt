@@ -8,6 +8,7 @@ import retrofit2.Response
 import retrofit2.http.*
 
 interface MediaApiService {
+
     @GET("media")
     suspend fun searchMedia(
         @Query("query") query: String? = null,
@@ -24,6 +25,12 @@ interface MediaApiService {
 
     @POST("library")
     suspend fun addToLibrary(@Body body: AddToLibraryRequest): Response<LibraryItem>
+
+    @PUT("library/{mediaId}")
+    suspend fun updateLibraryStatus(
+        @Path("mediaID") mediaId: Int,
+        @Body body: UpdateLibraryStatusRequest
+    ): Response<LibraryItem>
 
     @GET("reviews")
     suspend fun getReviews(@Query("mediaId") mediaId: Int): Response<List<Review>>
