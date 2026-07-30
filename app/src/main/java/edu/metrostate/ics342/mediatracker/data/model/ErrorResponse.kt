@@ -9,3 +9,9 @@ data class ErrorResponse(
 )
 
 class MediaNotFoundException(message: String) : Exception(message)
+
+/** Thrown when POST /favorites returns 409 — the item is already favorited. */
+class DuplicateFavoriteException : Exception("Already favorited")
+
+/** Thrown when POST /library returns 409 — the item is already in the library. */
+class DuplicateLibraryException : Exception("Already in library")

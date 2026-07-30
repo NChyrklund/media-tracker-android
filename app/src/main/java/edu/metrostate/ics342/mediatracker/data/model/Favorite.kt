@@ -4,5 +4,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Favorite(
-    val mediaId: Int
+    val userId: String,
+    val mediaId: Int,
+    val createdAt: String,
+    val media: Media? = null
 )

@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.MoreVert
@@ -46,77 +47,95 @@ fun MediaDetailScreen(
     viewModel: MediaDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val actionError by viewModel.actionError.collectAsState()
+
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(mediaId) { viewModel.load(mediaId) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {},
-            navigationIcon = {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.ArrowBack,
-                        contentDescription = stringResource(R.string.action_back)
-                    )
-                }
-            },
-            actions = {
-                IconButton(onClick = { /* TODO: overflow menu */ }) {
-                    Icon(
-                        Icons.Outlined.MoreVert,
-                        contentDescription = stringResource(R.string.action_more_options)
-                    )
-                }
-            }
-        )
+    LaunchedEffect(actionError) {
+        actionError?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearActionError()
+        }
+    }
 
-        when (val state = uiState) {
-            is MediaDetailUiState.Loading -> {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = {},
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            Icons.AutoMirrored.Outlined.ArrowBack,
+                            contentDescription = stringResource(R.string.action_back)
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { /* TODO: overflow menu */ }) {
+                        Icon(
+                            Icons.Outlined.MoreVert,
+                            contentDescription = stringResource(R.string.action_more_options)
+                        )
+                    }
                 }
-            }
+            )
 
-            is MediaDetailUiState.NotFound -> {
-                Box(
-                    Modifier.fillMaxSize().padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text  = stringResource(R.string.detail_not_found),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+            when (val state = uiState) {
+                is MediaDetailUiState.Loading -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
                 }
-            }
 
-            is MediaDetailUiState.Error -> {
-                Box(
-                    Modifier.fillMaxSize().padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                is MediaDetailUiState.NotFound -> {
+                    Box(
+                        Modifier.fillMaxSize().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text  = state.message,
+                            text  = stringResource(R.string.detail_not_found),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(Modifier.height(16.dp))
-                        Button(onClick = { viewModel.load(mediaId) }) {
-                            Text(stringResource(R.string.detail_retry))
+                    }
+                }
+
+                is MediaDetailUiState.Error -> {
+                    Box(
+                        Modifier.fillMaxSize().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text  = state.message,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(onClick = { viewModel.load(mediaId) }) {
+                                Text(stringResource(R.string.detail_retry))
+                            }
                         }
                     }
                 }
-            }
 
-            is MediaDetailUiState.Success -> {
-                SuccessContent(
-                    state         = state,
-                    onAddToLibrary = { viewModel.addToLibrary() },
-                    onWriteReview  = onWriteReview
-                )
+                is MediaDetailUiState.Success -> {
+                    SuccessContent(
+                        state           = state,
+                        onAddToLibrary  = { viewModel.addToLibrary() },
+                        onToggleFavorite = { viewModel.toggleFavorite() },
+                        onWriteReview   = onWriteReview
+                    )
+                }
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier  = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -124,6 +143,7 @@ fun MediaDetailScreen(
 private fun SuccessContent(
     state: MediaDetailUiState.Success,
     onAddToLibrary: () -> Unit,
+    onToggleFavorite: () -> Unit,
     onWriteReview: (Int) -> Unit
 ) {
     val detail = state.detail
@@ -170,7 +190,7 @@ private fun SuccessContent(
         ) {
             if (state.libraryStatus != null) {
                 FilledTonalButton(
-                    onClick   = { /* already in library — status change is a stretch */ },
+                    onClick   = { /* already in library — status change happens from the Library screen */ },
                     modifier  = Modifier.weight(1f)
                 ) {
                     Text(stringResource(state.libraryStatus.labelRes))
@@ -178,31 +198,39 @@ private fun SuccessContent(
             } else {
                 Button(
                     onClick  = onAddToLibrary,
-                    enabled  = !state.isAddingToLibrary,
                     modifier = Modifier.weight(1f)
                 ) {
-                    if (state.isAddingToLibrary) {
-                        CircularProgressIndicator(
-                            modifier  = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                            color     = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text(stringResource(R.string.detail_add_want_to))
-                    }
+                    Text(stringResource(R.string.detail_add_want_to))
                 }
             }
-            OutlinedButton(
-                onClick  = { /* TODO: save */ },
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    Icons.Outlined.FavoriteBorder,
-                    contentDescription = null,
-                    modifier           = Modifier.size(18.dp)
-                )
-                Spacer(Modifier.width(6.dp))
-                Text(stringResource(R.string.detail_save))
+
+            // Optimistic toggle — the heart flips the instant you tap it, no network wait.
+            if (state.isFavorited) {
+                FilledTonalButton(
+                    onClick  = onToggleFavorite,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Filled.Favorite,
+                        contentDescription = null,
+                        modifier           = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.detail_saved))
+                }
+            } else {
+                OutlinedButton(
+                    onClick  = onToggleFavorite,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        Icons.Outlined.FavoriteBorder,
+                        contentDescription = null,
+                        modifier           = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(stringResource(R.string.detail_save))
+                }
             }
         }
 
@@ -471,4 +499,4 @@ private fun ReviewCard(review: Review) {
             }
         }
     }
-}private fun relativeTime(iso: String): String = iso.take(10)
+}
