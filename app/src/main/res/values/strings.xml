@@ -126,4 +126,9 @@
     <string name="media_unknown_director">Unknown Director</string>
     <string name="media_unknown_creator">Unknown Creator</string>
 
+    <!-- Review -->
+    <string name="Review_Screen_Title">Write Review</string>
+    <string name="action_close">close</string>
+    <string name="post_button_text">Post</string>
+
 </resources>

@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import edu.metrostate.ics342.mediatracker.R
-import edu.metrostate.ics342.mediatracker.data.model.LibraryStatus
 import edu.metrostate.ics342.mediatracker.data.model.MediaDetail
 import edu.metrostate.ics342.mediatracker.data.model.MediaType
 import edu.metrostate.ics342.mediatracker.data.model.Review
