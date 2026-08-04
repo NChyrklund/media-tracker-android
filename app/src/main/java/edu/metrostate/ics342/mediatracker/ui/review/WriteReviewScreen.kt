@@ -2,11 +2,11 @@ package edu.metrostate.ics342.mediatracker.ui.review
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.*
@@ -17,9 +17,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -27,20 +28,11 @@ import coil.compose.AsyncImage
 import edu.metrostate.ics342.mediatracker.R
 import edu.metrostate.ics342.mediatracker.data.model.MediaDetail
 import edu.metrostate.ics342.mediatracker.data.model.MediaType
+import edu.metrostate.ics342.mediatracker.data.model.creatorCredit
 import edu.metrostate.ics342.mediatracker.theme.MediaTrackerTheme
 import edu.metrostate.ics342.mediatracker.theme.MovieContainer
 import edu.metrostate.ics342.mediatracker.theme.OnMovieContainer
 
-// ── STUB — Students build this in Week 8 ─────────────────────────────────────
-//
-// Week 8 task: Build the Write Review screen.
-//   1. Show a media summary at the top (cover thumbnail + title).
-//   2. Build a StarRatingRow composable: 5 tappable stars, tapping star N sets rating = N.
-//      Extract it as a reusable composable with (rating: Int, onRatingChange: (Int) -> Unit).
-//   3. Add a multiline text field (max 500 chars) with a character counter.
-//   4. Add a "Share to activity feed" checkbox (checked by default).
-//   5. Disable "Post Review" until at least one star is selected.
-//   6. Wire to POST /reviews on submit; navigate back on success.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WriteReviewScreen(
@@ -51,14 +43,24 @@ fun WriteReviewScreen(
 ) {
 
     val uiState by viewModel.uiState.collectAsState()
+    val actionError by viewModel.actionError.collectAsState()
 
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(mediaId) { viewModel.load(mediaId) }
+
+    LaunchedEffect(actionError) {
+        actionError?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearActionError()
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
+
         Column(modifier = Modifier.fillMaxSize()) {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.Review_Screen_Title)) },
@@ -72,7 +74,7 @@ fun WriteReviewScreen(
                 },
                 actions = {
                     Button(
-                        onClick  = onPost,
+                        onClick = onPost,
                     ) {
                         Text(
                             text = stringResource(R.string.post_button_text),
@@ -81,10 +83,55 @@ fun WriteReviewScreen(
                 }
             )
 
-            Spacer(Modifier.height(14.dp))
+            when (val state = uiState) {
+                is WriteReviewUiState.Loading -> {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator()
+                    }
+                }
 
-            //TODO: use MediaCover to display the media art
+                is WriteReviewUiState.NotFound -> {
+                    Box(
+                        Modifier.fillMaxSize().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = stringResource(R.string.detail_not_found),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
 
+                is WriteReviewUiState.Error -> {
+                    Box(
+                        Modifier.fillMaxSize().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = state.message,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(Modifier.height(16.dp))
+                            Button(onClick = { viewModel.load(mediaId) }) {
+                                Text(stringResource(R.string.detail_retry))
+                            }
+                        }
+                    }
+                }
+
+                is WriteReviewUiState.Success -> {
+                    val reviewText by viewModel.reviewText.collectAsState()
+
+                    SuccessContent(
+                        state = state,
+                        reviewText = reviewText,
+                        onReviewTextChange = viewModel::onReviewTextChange
+                    )
+                }
+            }
         }
     }
 }
@@ -132,6 +179,87 @@ private fun MediaCover(detail: MediaDetail) {
     }
 }
 
+@Composable
+private fun SuccessContent(
+    state: WriteReviewUiState.Success,
+    reviewText: String,
+    onReviewTextChange: (String) -> Unit
+) {
+    val detail = state.detail
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        // ── Cover + title + credit + rating ──────────────────────────────
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            MediaCover(detail)
+
+            Spacer(Modifier.height(14.dp))
+
+            Text(
+                text       = detail.title,
+                style      = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(Modifier.height(2.dp))
+
+            Text(
+                text  = detail.creatorCredit(LocalContext.current),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        SectionCaption(stringResource(R.string.review_your_rating))
+
+        Spacer(Modifier.height(14.dp))
+
+        //TODO: STARS
+
+        Spacer(Modifier.height(14.dp))
+
+        SectionCaption(stringResource(R.string.review_your_review))
+
+        Spacer(Modifier.height(14.dp))
+
+        //TODO: REVIEW BOX
+        OutlinedTextField(
+            value = reviewText,
+            onValueChange = onReviewTextChange ,
+            placeholder = { Text(stringResource(R.string.review_your_thoughts)) },
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 150.dp)
+        )
+
+
+
+        Spacer(Modifier.height(14.dp))
+    }
+}
+
+@Composable
+private fun SectionCaption(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text       = text.uppercase(),
+        style      = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color      = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier   = modifier
+    )
+}
+
+
 @Preview(showBackground = true)
 @Composable
 fun WriteReviewScreenPreview() {
@@ -143,5 +271,3 @@ fun WriteReviewScreenPreview() {
         )
     }
 }
-
-

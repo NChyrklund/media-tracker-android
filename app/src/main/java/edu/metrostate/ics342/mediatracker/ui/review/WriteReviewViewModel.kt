@@ -5,25 +5,21 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import edu.metrostate.ics342.mediatracker.data.datastore.DefaultSessionRepository
-import edu.metrostate.ics342.mediatracker.data.model.LibraryStatus
 import edu.metrostate.ics342.mediatracker.data.model.MediaDetail
-import edu.metrostate.ics342.mediatracker.data.model.Review
 import edu.metrostate.ics342.mediatracker.data.network.DefaultMediaRepository
-import edu.metrostate.ics342.mediatracker.ui.detail.MediaDetailUiState
-import edu.metrostate.ics342.mediatracker.ui.library.LibraryUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 
-sealed interface MediaReviewUiState {
-    data object Loading : MediaReviewUiState
-    data object NotFound : MediaReviewUiState
-    data class Error(val message: String) : MediaReviewUiState
+sealed interface WriteReviewUiState {
+    data object Loading : WriteReviewUiState
+    data object NotFound : WriteReviewUiState
+    data class Error(val message: String) : WriteReviewUiState
     data class Success(
         val detail: MediaDetail
-    ) : MediaReviewUiState
+    ) : WriteReviewUiState
 }
 
 class WriteReviewViewModel @JvmOverloads constructor(
@@ -31,25 +27,6 @@ class WriteReviewViewModel @JvmOverloads constructor(
     private val repository: DefaultMediaRepository =
         DefaultMediaRepository(DefaultSessionRepository(application))
 ) : AndroidViewModel(application) {
-
-    private val _uiState = MutableStateFlow<MediaReviewUiState>(MediaReviewUiState.Loading)
-    val uiState: StateFlow<MediaReviewUiState> = _uiState.asStateFlow()
-
-    private var currentMediaId: Int? = null
-
-    fun load(mediaId: Int) {
-        currentMediaId = mediaId
-        _uiState.value = MediaReviewUiState.Loading
-        viewModelScope.launch {
-            try {
-                val detail = repository.getMediaDetail(mediaId)
-                _uiState.value = MediaReviewUiState.Success(detail)
-            }
-            catch (e: Exception) {
-                _uiState.value = MediaReviewUiState.Error(e.message ?: "Failed to fetch media details")
-            }
-        }
-    }
 
     class WriteReviewViewModel : ViewModel() {
         // TODO (Week 8): Add rating StateFlow, reviewText StateFlow, shareToFeed StateFlow.
@@ -60,5 +37,35 @@ class WriteReviewViewModel @JvmOverloads constructor(
         fun onRatingChange(value: Int) {
             _rating.value = value
         }
+    }
+    private val _uiState = MutableStateFlow<WriteReviewUiState>(WriteReviewUiState.Loading)
+    val uiState: StateFlow<WriteReviewUiState> = _uiState.asStateFlow()
+
+    private val _actionError = MutableStateFlow<String?>(null)
+    val actionError: StateFlow<String?> = _actionError.asStateFlow()
+
+    private val _reviewText = MutableStateFlow("")
+    val reviewText: StateFlow<String> = _reviewText.asStateFlow()
+
+    private var currentMediaId: Int? = null
+
+    fun load(mediaId: Int) {
+        currentMediaId = mediaId
+        _uiState.value = WriteReviewUiState.Loading
+        viewModelScope.launch {
+            try {
+                val detail = repository.getMediaDetail(mediaId)
+                _uiState.value = WriteReviewUiState.Success(detail)
+            }
+            catch (e: Exception) {
+                _uiState.value = WriteReviewUiState.Error(e.message ?: "Failed to fetch media details")
+            }
+        }
+    }
+
+    fun onReviewTextChange(value: String) {_reviewText.value = value }
+
+    fun clearActionError() {
+        _actionError.value = null
     }
 }

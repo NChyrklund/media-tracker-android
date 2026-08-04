@@ -130,5 +130,9 @@
     <string name="Review_Screen_Title">Write Review</string>
     <string name="action_close">close</string>
     <string name="post_button_text">Post</string>
+    <string name="review_your_rating">Your rating</string>
+    <string name="review_your_review">Your review</string>
+    <string name="review_your_thoughts">What did you think?</string>
+
 
 </resources>
