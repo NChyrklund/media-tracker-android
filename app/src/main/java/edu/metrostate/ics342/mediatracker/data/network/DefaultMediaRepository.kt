@@ -127,12 +127,42 @@ class DefaultMediaRepository(sessionRepository: SessionRepository) {
         return response.body() ?: error("Empty body adding mediaId $mediaId to favorites")
     }
 
+
+
     suspend fun removeFavorite(mediaId: Int) {
         val response = api.removeFavorite(mediaId)
         if (!response.isSuccessful) {
             val message = parseErrorMessage(response) ?: "Failed to remove favorite (${response.code()})"
             error(message)
         }
+    }
+
+    suspend fun writeReview(
+        mediaId: Int,
+        rating: Int,
+        reviewText: String,
+        shareToFeed: Boolean
+    ): Review {
+
+        val body = WriteReviewRequest(mediaId, rating, reviewText, shareToFeed)
+        val response = api.writeReview(body)
+
+        if (response.code() == 409) {
+            val updateResponse =
+                api.updateReview(mediaId, UpdateReviewRequest(rating, reviewText))
+
+            if (!updateResponse.isSuccessful) {
+                error(parseErrorMessage(updateResponse) ?: "Failed to update review")
+            }
+
+            return updateResponse.body() ?: error("Empty update response")
+        }
+
+        if (!response.isSuccessful) {
+            error(parseErrorMessage(response) ?: "Failed to create review")
+        }
+
+        return response.body() ?: error("Empty response")
     }
 
     suspend fun getReviews(mediaId: Int): List<Review> {

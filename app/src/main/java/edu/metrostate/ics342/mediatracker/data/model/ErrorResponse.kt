@@ -15,3 +15,5 @@ class DuplicateFavoriteException : Exception("Already favorited")
 
 /** Thrown when POST /library returns 409 — the item is already in the library. */
 class DuplicateLibraryException : Exception("Already in library")
+
+class AlreadyReviewedException : Exception("This media was already reviewed by this user")

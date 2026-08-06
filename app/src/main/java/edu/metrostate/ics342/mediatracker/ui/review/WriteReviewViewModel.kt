@@ -5,8 +5,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import edu.metrostate.ics342.mediatracker.data.datastore.DefaultSessionRepository
+import edu.metrostate.ics342.mediatracker.data.model.DuplicateLibraryException
+import edu.metrostate.ics342.mediatracker.data.model.LibraryStatus
 import edu.metrostate.ics342.mediatracker.data.model.MediaDetail
 import edu.metrostate.ics342.mediatracker.data.network.DefaultMediaRepository
+import edu.metrostate.ics342.mediatracker.ui.detail.MediaDetailUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,6 +50,9 @@ class WriteReviewViewModel @JvmOverloads constructor(
     private val _reviewText = MutableStateFlow("")
     val reviewText: StateFlow<String> = _reviewText.asStateFlow()
 
+    private val _reviewPosted = MutableStateFlow(false)
+    val reviewPosted: StateFlow<Boolean> = _reviewPosted.asStateFlow()
+
     private var currentMediaId: Int? = null
 
     fun load(mediaId: Int) {
@@ -67,5 +73,20 @@ class WriteReviewViewModel @JvmOverloads constructor(
 
     fun clearActionError() {
         _actionError.value = null
+    }
+
+    fun createReview() {
+        val mediaId = currentMediaId ?: return
+        viewModelScope.launch {
+            try {
+                repository.writeReview(mediaId, 2, _reviewText.value, true)
+                _reviewPosted.value = true
+            }
+            catch (e: Exception) {
+                _actionError.value = e.message
+                e.printStackTrace()
+            }
+
+        }
     }
 }

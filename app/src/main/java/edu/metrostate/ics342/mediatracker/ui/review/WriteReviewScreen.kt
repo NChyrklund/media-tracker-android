@@ -7,6 +7,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material.icons.outlined.StarHalf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.*
@@ -32,22 +35,29 @@ import edu.metrostate.ics342.mediatracker.data.model.creatorCredit
 import edu.metrostate.ics342.mediatracker.theme.MediaTrackerTheme
 import edu.metrostate.ics342.mediatracker.theme.MovieContainer
 import edu.metrostate.ics342.mediatracker.theme.OnMovieContainer
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WriteReviewScreen(
     mediaId: Int,
     onNavigateBack: () -> Unit,
-    onPost: () -> Unit = {},
     viewModel: WriteReviewViewModel = viewModel()
 ) {
 
     val uiState by viewModel.uiState.collectAsState()
     val actionError by viewModel.actionError.collectAsState()
+    val reviewPosted by viewModel.reviewPosted.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(mediaId) { viewModel.load(mediaId) }
+
+    LaunchedEffect(reviewPosted) {
+        if (reviewPosted) {
+            onNavigateBack()
+        }
+    }
 
     LaunchedEffect(actionError) {
         actionError?.let {
@@ -74,7 +84,7 @@ fun WriteReviewScreen(
                 },
                 actions = {
                     Button(
-                        onClick = onPost,
+                        onClick = {viewModel.createReview()}
                     ) {
                         Text(
                             text = stringResource(R.string.post_button_text),
@@ -92,7 +102,9 @@ fun WriteReviewScreen(
 
                 is WriteReviewUiState.NotFound -> {
                     Box(
-                        Modifier.fillMaxSize().padding(32.dp),
+                        Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -105,7 +117,9 @@ fun WriteReviewScreen(
 
                 is WriteReviewUiState.Error -> {
                     Box(
-                        Modifier.fillMaxSize().padding(32.dp),
+                        Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -223,7 +237,16 @@ private fun SuccessContent(
 
         Spacer(Modifier.height(14.dp))
 
-        //TODO: STARS
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+
+        ) { StarRow(
+            onRatingChange = { }
+        )}
+
 
         Spacer(Modifier.height(14.dp))
 
@@ -260,14 +283,29 @@ private fun SectionCaption(text: String, modifier: Modifier = Modifier) {
 }
 
 
+@Composable
+private fun StarRow(onRatingChange: (Int) -> Unit) {
+    Row (
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        for (i in 1..5) {
+            Icon(
+                imageVector        = Icons.Outlined.StarBorder,
+                contentDescription = null,
+                modifier           = Modifier.size(48.dp),
+                tint               = MaterialTheme.colorScheme.secondary
+            )
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun WriteReviewScreenPreview() {
     MediaTrackerTheme {
         WriteReviewScreen (
             mediaId = 1,
-            onNavigateBack = {},
-            onPost = {}
+            onNavigateBack = {}
         )
     }
 }

@@ -54,4 +54,13 @@ interface MediaApiService {
 
     @GET("reviews")
     suspend fun getReviews(@Query("mediaId") mediaId: Int): Response<List<Review>>
+
+    @POST("reviews")
+    suspend fun writeReview(@Body body: WriteReviewRequest): Response<Review>
+
+    @PUT("reviews/{mediaId}")
+    suspend fun updateReview(
+        @Path("mediaId") mediaId: Int,
+        @Body body: UpdateReviewRequest
+    ): Response<Review>
 }
