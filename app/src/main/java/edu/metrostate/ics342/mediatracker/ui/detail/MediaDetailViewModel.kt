@@ -25,7 +25,7 @@ sealed interface MediaDetailUiState {
         val detail: MediaDetail,
         val libraryStatus: LibraryStatus?,
         val isFavorited: Boolean,
-        val reviews: List<Review>
+        val reviews: List<Review>?
     ) : MediaDetailUiState
 }
 
@@ -72,10 +72,10 @@ class MediaDetailViewModel @JvmOverloads constructor(
             }
 
             _uiState.value = MediaDetailUiState.Success(
-                detail        = detail,
+                detail = detail,
                 libraryStatus = libraryDeferred.await()?.status,
-                isFavorited   = favoriteDeferred.await() != null,
-                reviews       = reviewsDeferred.await()
+                isFavorited = favoriteDeferred.await() != null,
+                reviews = reviewsDeferred.await()
             )
         }
     }

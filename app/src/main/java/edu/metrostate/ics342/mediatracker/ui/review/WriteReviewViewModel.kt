@@ -5,11 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import edu.metrostate.ics342.mediatracker.data.datastore.DefaultSessionRepository
-import edu.metrostate.ics342.mediatracker.data.model.DuplicateLibraryException
-import edu.metrostate.ics342.mediatracker.data.model.LibraryStatus
 import edu.metrostate.ics342.mediatracker.data.model.MediaDetail
 import edu.metrostate.ics342.mediatracker.data.network.DefaultMediaRepository
-import edu.metrostate.ics342.mediatracker.ui.detail.MediaDetailUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -41,8 +38,13 @@ class WriteReviewViewModel @JvmOverloads constructor(
             _rating.value = value
         }
     }
+
+    final val reviewCharLimit = 500
     private val _uiState = MutableStateFlow<WriteReviewUiState>(WriteReviewUiState.Loading)
     val uiState: StateFlow<WriteReviewUiState> = _uiState.asStateFlow()
+
+    private val _rating = MutableStateFlow(0)
+    val rating: StateFlow<Int> = _rating
 
     private val _actionError = MutableStateFlow<String?>(null)
     val actionError: StateFlow<String?> = _actionError.asStateFlow()
@@ -52,6 +54,9 @@ class WriteReviewViewModel @JvmOverloads constructor(
 
     private val _reviewPosted = MutableStateFlow(false)
     val reviewPosted: StateFlow<Boolean> = _reviewPosted.asStateFlow()
+
+    private val _shareToFeed = MutableStateFlow<Boolean>(true)
+    val shareToFeed: StateFlow<Boolean> = _shareToFeed.asStateFlow()
 
     private var currentMediaId: Int? = null
 
@@ -69,7 +74,15 @@ class WriteReviewViewModel @JvmOverloads constructor(
         }
     }
 
-    fun onReviewTextChange(value: String) {_reviewText.value = value }
+    fun onShareToFeedToggle(share: Boolean) {
+        _shareToFeed.value = share
+    }
+
+    fun onReviewTextChange(newText: String) {
+        if (newText.length <= 500) {
+            _reviewText.value = newText
+        }
+    }
 
     fun clearActionError() {
         _actionError.value = null
@@ -79,7 +92,7 @@ class WriteReviewViewModel @JvmOverloads constructor(
         val mediaId = currentMediaId ?: return
         viewModelScope.launch {
             try {
-                repository.writeReview(mediaId, 2, _reviewText.value, true)
+                repository.writeReview(mediaId, _rating.value, _reviewText.value, true)
                 _reviewPosted.value = true
             }
             catch (e: Exception) {
@@ -88,5 +101,9 @@ class WriteReviewViewModel @JvmOverloads constructor(
             }
 
         }
+    }
+
+    fun onRatingChange(newRating: Int) {
+        _rating.value = newRating;
     }
 }

@@ -1,6 +1,8 @@
 package edu.metrostate.ics342.mediatracker.ui.review
 
+import android.widget.CheckBox
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
-import androidx.compose.material.icons.outlined.StarHalf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.material3.*
@@ -24,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,7 +37,6 @@ import edu.metrostate.ics342.mediatracker.data.model.creatorCredit
 import edu.metrostate.ics342.mediatracker.theme.MediaTrackerTheme
 import edu.metrostate.ics342.mediatracker.theme.MovieContainer
 import edu.metrostate.ics342.mediatracker.theme.OnMovieContainer
-import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +49,8 @@ fun WriteReviewScreen(
     val uiState by viewModel.uiState.collectAsState()
     val actionError by viewModel.actionError.collectAsState()
     val reviewPosted by viewModel.reviewPosted.collectAsState()
+    val rating by viewModel.rating.collectAsState()
+    val shareToFeed by viewModel.shareToFeed.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -142,7 +145,12 @@ fun WriteReviewScreen(
                     SuccessContent(
                         state = state,
                         reviewText = reviewText,
-                        onReviewTextChange = viewModel::onReviewTextChange
+                        onReviewTextChange = viewModel::onReviewTextChange,
+                        onRatingChange = viewModel::onRatingChange,
+                        rating = rating,
+                        reviewCharLimit = viewModel.reviewCharLimit,
+                        shareToFeed = shareToFeed,
+                        onShareToFeedToggle = viewModel::onShareToFeedToggle
                     )
                 }
             }
@@ -197,7 +205,12 @@ private fun MediaCover(detail: MediaDetail) {
 private fun SuccessContent(
     state: WriteReviewUiState.Success,
     reviewText: String,
-    onReviewTextChange: (String) -> Unit
+    onReviewTextChange: (String) -> Unit,
+    onRatingChange: (Int) -> Unit,
+    rating: Int,
+    reviewCharLimit: Int,
+    shareToFeed: Boolean,
+    onShareToFeedToggle: (Boolean) -> Unit
 ) {
     val detail = state.detail
 
@@ -244,7 +257,8 @@ private fun SuccessContent(
             horizontalAlignment = Alignment.CenterHorizontally,
 
         ) { StarRow(
-            onRatingChange = { }
+            onRatingChange = onRatingChange,
+            rating = rating
         )}
 
 
@@ -254,7 +268,6 @@ private fun SuccessContent(
 
         Spacer(Modifier.height(14.dp))
 
-        //TODO: REVIEW BOX
         OutlinedTextField(
             value = reviewText,
             onValueChange = onReviewTextChange ,
@@ -265,9 +278,25 @@ private fun SuccessContent(
                 .defaultMinSize(minHeight = 150.dp)
         )
 
+        Spacer(Modifier.height(14.dp))
 
+        Text(
+            text = "${reviewText.length} / ${reviewCharLimit}",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            textAlign = TextAlign.End,
+            style      = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 
         Spacer(Modifier.height(14.dp))
+
+        shareCheckbox(
+            share = shareToFeed,
+            onShareToFeedToggle = onShareToFeedToggle
+        )
     }
 }
 
@@ -282,30 +311,57 @@ private fun SectionCaption(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-
 @Composable
-private fun StarRow(onRatingChange: (Int) -> Unit) {
-    Row (
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+private fun shareCheckbox(
+    share: Boolean,
+    onShareToFeedToggle: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable {
+                onShareToFeedToggle(!share)
+            }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        for (i in 1..5) {
-            Icon(
-                imageVector        = Icons.Outlined.StarBorder,
-                contentDescription = null,
-                modifier           = Modifier.size(48.dp),
-                tint               = MaterialTheme.colorScheme.secondary
-            )
-        }
+        Checkbox(
+            checked = share,
+            onCheckedChange = onShareToFeedToggle
+        )
+
+        Spacer(Modifier.width(8.dp))
+
+        Text(
+            text = stringResource(R.string.review_toggle_share),
+            style = MaterialTheme.typography.bodyMedium
+        )
     }
 }
 
-@Preview(showBackground = true)
 @Composable
-fun WriteReviewScreenPreview() {
-    MediaTrackerTheme {
-        WriteReviewScreen (
-            mediaId = 1,
-            onNavigateBack = {}
-        )
+fun StarRow(
+    rating: Int,
+    onRatingChange: (Int) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (star in 1..5) {
+
+            Icon(
+                imageVector = if (star <= rating)
+                    Icons.Filled.Star
+                else
+                    Icons.Outlined.StarBorder,
+
+                contentDescription = "$star stars",
+                modifier = Modifier
+                    .size(48.dp)
+                    .clickable {
+                        onRatingChange(star)
+                    }
+            )
+        }
     }
 }

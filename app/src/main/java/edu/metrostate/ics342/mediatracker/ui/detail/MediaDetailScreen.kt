@@ -268,7 +268,7 @@ private fun SuccessContent(
 
         Spacer(Modifier.height(4.dp))
 
-        if (state.reviews.isEmpty()) {
+        if (state.reviews?.isEmpty() ?: true) {
             Text(
                 text     = stringResource(R.string.detail_no_reviews),
                 style    = MaterialTheme.typography.bodyMedium,
