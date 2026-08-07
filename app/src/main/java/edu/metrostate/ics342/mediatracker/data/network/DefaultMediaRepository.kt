@@ -25,7 +25,7 @@ data class LibraryPage(
     val hasMore: Boolean
 )
 
-class DefaultMediaRepository(sessionRepository: SessionRepository) {
+class DefaultMediaRepository(private val sessionRepository: SessionRepository) {
 
     private val api = RetrofitInstance.mediaApiService(sessionRepository)
 
@@ -165,9 +165,20 @@ class DefaultMediaRepository(sessionRepository: SessionRepository) {
         return response.body() ?: error("Empty response")
     }
 
-    suspend fun getReviews(mediaId: Int): List<Review> {
+    suspend fun getReviews(mediaId: Int): List<Review>? {
         val response = api.getReviews(mediaId)
         if (!response.isSuccessful) return emptyList()
-        return response.body() ?: emptyList()
+
+        val currentUserId = sessionRepository.getUser()?.id
+
+        val sortedReviews = response.body()?.sortedWith(
+            compareByDescending<Review> { review ->
+                review.userId == currentUserId
+            }.thenByDescending { review ->
+                review.createdAt
+            }
+        )
+
+        return sortedReviews
     }
 }
