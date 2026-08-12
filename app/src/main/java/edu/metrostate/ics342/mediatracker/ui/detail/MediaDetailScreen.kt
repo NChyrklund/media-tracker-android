@@ -200,7 +200,7 @@ private fun SuccessContent(
         ) {
             if (state.libraryStatus != null) {
                 FilledTonalButton(
-                    onClick   = { /* already in library — status change happens from the Library screen */ },
+                    onClick   = { /* already in library; status change happens from the Library screen */ },
                     modifier  = Modifier.weight(1f)
                 ) {
                     Text(stringResource(state.libraryStatus.labelRes))

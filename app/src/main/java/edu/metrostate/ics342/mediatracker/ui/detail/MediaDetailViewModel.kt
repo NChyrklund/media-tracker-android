@@ -87,7 +87,7 @@ class MediaDetailViewModel @JvmOverloads constructor(
             val favoriteDeferred = async { runCatching { repository.getFavorite(mediaId) }.getOrNull() }
             val reviewsDeferred  = async { runCatching { repository.getReviews(mediaId) }.getOrElse { emptyList() } }
 
-            // Await detail first — if it fails fast we don't block on slower secondary calls.
+            // Await detail first
             val detail = try {
                 detailDeferred.await()
             } catch (e: MediaNotFoundException) {

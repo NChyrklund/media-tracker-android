@@ -348,7 +348,7 @@ private fun shareCheckbox(
 }
 
 @Composable
-fun StarRow(
+internal fun StarRow(
     rating: Int,
     onRatingChange: (Int) -> Unit,
 ) {
