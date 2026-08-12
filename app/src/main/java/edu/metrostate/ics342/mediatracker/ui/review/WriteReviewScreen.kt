@@ -1,6 +1,5 @@
 package edu.metrostate.ics342.mediatracker.ui.review
 
-import android.widget.CheckBox
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,7 +25,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -34,7 +32,6 @@ import edu.metrostate.ics342.mediatracker.R
 import edu.metrostate.ics342.mediatracker.data.model.MediaDetail
 import edu.metrostate.ics342.mediatracker.data.model.MediaType
 import edu.metrostate.ics342.mediatracker.data.model.creatorCredit
-import edu.metrostate.ics342.mediatracker.theme.MediaTrackerTheme
 import edu.metrostate.ics342.mediatracker.theme.MovieContainer
 import edu.metrostate.ics342.mediatracker.theme.OnMovieContainer
 
@@ -42,6 +39,7 @@ import edu.metrostate.ics342.mediatracker.theme.OnMovieContainer
 @Composable
 fun WriteReviewScreen(
     mediaId: Int,
+    reviewId: Int,
     onNavigateBack: () -> Unit,
     viewModel: WriteReviewViewModel = viewModel()
 ) {
@@ -54,7 +52,9 @@ fun WriteReviewScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(mediaId) { viewModel.load(mediaId) }
+    LaunchedEffect(mediaId, reviewId) {
+        viewModel.load(mediaId, reviewId)
+    }
 
     LaunchedEffect(reviewPosted) {
         if (reviewPosted) {
@@ -87,7 +87,7 @@ fun WriteReviewScreen(
                 },
                 actions = {
                     Button(
-                        onClick = {viewModel.createReview()}
+                        onClick = {viewModel.submitReview(reviewId)}
                     ) {
                         Text(
                             text = stringResource(R.string.post_button_text),
@@ -132,7 +132,7 @@ fun WriteReviewScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(Modifier.height(16.dp))
-                            Button(onClick = { viewModel.load(mediaId) }) {
+                            Button(onClick = { viewModel.load(mediaId, reviewId) }) {
                                 Text(stringResource(R.string.detail_retry))
                             }
                         }
@@ -142,6 +142,8 @@ fun WriteReviewScreen(
                 is WriteReviewUiState.Success -> {
                     val reviewText by viewModel.reviewText.collectAsState()
 
+                    val edittingReview = if (reviewId > 0) true else false
+
                     SuccessContent(
                         state = state,
                         reviewText = reviewText,
@@ -150,7 +152,8 @@ fun WriteReviewScreen(
                         rating = rating,
                         reviewCharLimit = viewModel.reviewCharLimit,
                         shareToFeed = shareToFeed,
-                        onShareToFeedToggle = viewModel::onShareToFeedToggle
+                        onShareToFeedToggle = viewModel::onShareToFeedToggle,
+                        edittingReview = edittingReview,
                     )
                 }
             }
@@ -209,6 +212,7 @@ private fun SuccessContent(
     onRatingChange: (Int) -> Unit,
     rating: Int,
     reviewCharLimit: Int,
+    edittingReview: Boolean,
     shareToFeed: Boolean,
     onShareToFeedToggle: (Boolean) -> Unit
 ) {
@@ -293,10 +297,12 @@ private fun SuccessContent(
 
         Spacer(Modifier.height(14.dp))
 
-        shareCheckbox(
-            share = shareToFeed,
-            onShareToFeedToggle = onShareToFeedToggle
-        )
+        if (!edittingReview) {
+            shareCheckbox(
+                share = shareToFeed,
+                onShareToFeedToggle = onShareToFeedToggle
+            )
+        }
     }
 }
 

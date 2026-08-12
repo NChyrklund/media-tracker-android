@@ -27,19 +27,7 @@ class WriteReviewViewModel @JvmOverloads constructor(
     private val repository: DefaultMediaRepository =
         DefaultMediaRepository(DefaultSessionRepository(application))
 ) : AndroidViewModel(application) {
-
-    class WriteReviewViewModel : ViewModel() {
-        // TODO (Week 8): Add rating StateFlow, reviewText StateFlow, shareToFeed StateFlow.
-        // Wire to POST /reviews on submit.
-        private val _rating = MutableStateFlow(0)
-        val rating: StateFlow<Int> = _rating.asStateFlow()
-
-        fun onRatingChange(value: Int) {
-            _rating.value = value
-        }
-    }
-
-    final val reviewCharLimit = 500
+    val reviewCharLimit = 500
     private val _uiState = MutableStateFlow<WriteReviewUiState>(WriteReviewUiState.Loading)
     val uiState: StateFlow<WriteReviewUiState> = _uiState.asStateFlow()
 
@@ -60,12 +48,30 @@ class WriteReviewViewModel @JvmOverloads constructor(
 
     private var currentMediaId: Int? = null
 
-    fun load(mediaId: Int) {
+    fun load(mediaId: Int, reviewId: Int) {
         currentMediaId = mediaId
         _uiState.value = WriteReviewUiState.Loading
+
         viewModelScope.launch {
             try {
                 val detail = repository.getMediaDetail(mediaId)
+
+                // Edit review
+                if (reviewId > 0) {
+                    val review = repository
+                        .getReviews(mediaId)
+                        ?.find { it.id == reviewId }
+
+                    if (review != null) {
+                        _rating.value = review.rating
+                        _reviewText.value = review.reviewText ?: ""
+                    }
+                } else {
+                    // New review
+                    _rating.value = 0
+                    _reviewText.value = ""
+                }
+
                 _uiState.value = WriteReviewUiState.Success(detail)
             }
             catch (e: Exception) {
@@ -88,18 +94,32 @@ class WriteReviewViewModel @JvmOverloads constructor(
         _actionError.value = null
     }
 
-    fun createReview() {
+    fun submitReview(reviewId: Int) {
         val mediaId = currentMediaId ?: return
+
         viewModelScope.launch {
             try {
-                repository.writeReview(mediaId, _rating.value, _reviewText.value, true)
+                if (reviewId > 0) {
+                    repository.updateReview(
+                        reviewId = reviewId,
+                        rating = _rating.value,
+                        reviewText = _reviewText.value
+                    )
+                } else {
+                    repository.writeReview(
+                        mediaId = mediaId,
+                        rating = _rating.value,
+                        reviewText = _reviewText.value,
+                        shareToFeed = _shareToFeed.value
+                    )
+                }
+
                 _reviewPosted.value = true
-            }
-            catch (e: Exception) {
+
+            } catch (e: Exception) {
                 _actionError.value = e.message
                 e.printStackTrace()
             }
-
         }
     }
 

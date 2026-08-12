@@ -58,9 +58,12 @@ interface MediaApiService {
     @POST("reviews")
     suspend fun writeReview(@Body body: WriteReviewRequest): Response<Review>
 
-    @PUT("reviews/{mediaId}")
+    @PUT("reviews/{reviewId}")
     suspend fun updateReview(
-        @Path("mediaId") mediaId: Int,
+        @Path("reviewId") reviewId: Int,
         @Body body: UpdateReviewRequest
     ): Response<Review>
+
+    @DELETE("reviews/{reviewId}")
+    suspend fun removeReview(@Path("reviewId") reviewId: Int): Response<Unit>
 }

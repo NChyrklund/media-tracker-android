@@ -25,23 +25,56 @@ sealed interface MediaDetailUiState {
         val detail: MediaDetail,
         val libraryStatus: LibraryStatus?,
         val isFavorited: Boolean,
-        val reviews: List<Review>?
+        val reviews: List<Review>?,
+        val currentUserId: String?,
+        val reviewExists: Boolean
     ) : MediaDetailUiState
 }
 
 class MediaDetailViewModel @JvmOverloads constructor(
     application: Application,
     private val repository: DefaultMediaRepository =
-        DefaultMediaRepository(DefaultSessionRepository(application))
+        DefaultMediaRepository(DefaultSessionRepository(application)),
+    private val sessionRepository: DefaultSessionRepository =
+        DefaultSessionRepository(application)
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow<MediaDetailUiState>(MediaDetailUiState.Loading)
     val uiState: StateFlow<MediaDetailUiState> = _uiState.asStateFlow()
 
+    private var currentUserId: String? = null
+
     private val _actionError = MutableStateFlow<String?>(null)
     val actionError: StateFlow<String?> = _actionError.asStateFlow()
 
     private var currentMediaId: Int? = null
+
+    fun deleteReview(reviewId: Int) {
+        val current = _uiState.value as? MediaDetailUiState.Success
+            ?: return
+
+        val reviews = current.reviews ?: return
+
+        val updatedReviews = reviews.filterNot { it.id == reviewId }
+
+        _uiState.value = current.copy(
+            reviews = updatedReviews,
+            reviewExists = updatedReviews.any { it.userId == currentUserId }
+        )
+
+        viewModelScope.launch {
+            try {
+                repository.removeReview(reviewId)
+
+            } catch (e: Exception) {
+                // Restore the screen from the server if deletion failed.
+                currentMediaId?.let { load(it) }
+
+                _actionError.value =
+                    e.message ?: "Couldn't delete review. Try again."
+            }
+        }
+    }
 
     fun load(mediaId: Int) {
         currentMediaId = mediaId
@@ -71,11 +104,16 @@ class MediaDetailViewModel @JvmOverloads constructor(
                 return@launch
             }
 
+            val reviews = reviewsDeferred.await()
+            currentUserId = sessionRepository.getUser()?.id
+
             _uiState.value = MediaDetailUiState.Success(
                 detail = detail,
                 libraryStatus = libraryDeferred.await()?.status,
                 isFavorited = favoriteDeferred.await() != null,
-                reviews = reviewsDeferred.await()
+                reviews = reviewsDeferred.await(),
+                currentUserId = sessionRepository.getUser()?.id,
+                reviewExists = reviews?.any { it.userId == currentUserId } == true
             )
         }
     }
