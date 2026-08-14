@@ -43,6 +43,7 @@ fun MediaDetailScreen(
     mediaId: Int,
     onNavigateBack: () -> Unit,
     onWriteReview: (Int) -> Unit,
+    onEditReview: (Review) -> Unit,
     viewModel: MediaDetailViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -90,7 +91,9 @@ fun MediaDetailScreen(
 
                 is MediaDetailUiState.NotFound -> {
                     Box(
-                        Modifier.fillMaxSize().padding(32.dp),
+                        Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -103,7 +106,9 @@ fun MediaDetailScreen(
 
                 is MediaDetailUiState.Error -> {
                     Box(
-                        Modifier.fillMaxSize().padding(32.dp),
+                        Modifier
+                            .fillMaxSize()
+                            .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -125,7 +130,11 @@ fun MediaDetailScreen(
                         state           = state,
                         onAddToLibrary  = { viewModel.addToLibrary() },
                         onToggleFavorite = { viewModel.toggleFavorite() },
-                        onWriteReview   = onWriteReview
+                        onWriteReview = onWriteReview,
+                        onEditReview = onEditReview,
+                        onDeleteReview = { reviewId ->
+                            viewModel.deleteReview(reviewId)
+                        }
                     )
                 }
             }
@@ -143,6 +152,8 @@ private fun SuccessContent(
     state: MediaDetailUiState.Success,
     onAddToLibrary: () -> Unit,
     onToggleFavorite: () -> Unit,
+    onEditReview: (Review) -> Unit,
+    onDeleteReview: (Int) -> Unit,
     onWriteReview: (Int) -> Unit
 ) {
     val detail = state.detail
@@ -189,7 +200,7 @@ private fun SuccessContent(
         ) {
             if (state.libraryStatus != null) {
                 FilledTonalButton(
-                    onClick   = { /* already in library — status change happens from the Library screen */ },
+                    onClick   = { /* already in library; status change happens from the Library screen */ },
                     modifier  = Modifier.weight(1f)
                 ) {
                     Text(stringResource(state.libraryStatus.labelRes))
@@ -253,6 +264,7 @@ private fun SuccessContent(
         Spacer(Modifier.height(20.dp))
 
         // ── Reviews ──────────────────────────────────────────────────────
+
         Row(
             modifier          = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -261,8 +273,10 @@ private fun SuccessContent(
                 text     = stringResource(R.string.detail_reviews_count, detail.reviewCount),
                 modifier = Modifier.weight(1f)
             )
-            TextButton(onClick = { onWriteReview(detail.id) }) {
-                Text(stringResource(R.string.detail_write_review))
+            if (!state.reviewExists) {
+                TextButton(onClick = { onWriteReview(detail.id) }) {
+                    Text(stringResource(R.string.detail_write_review))
+            }
             }
         }
 
@@ -277,7 +291,12 @@ private fun SuccessContent(
             )
         } else {
             state.reviews.forEach { review ->
-                ReviewCard(review)
+                ReviewCard(
+                    review = review,
+                    isOwnReview = review.userId == state.currentUserId,
+                    onEditReview = { onEditReview(review) },
+                    onDeleteReview = { onDeleteReview(review.id) }
+                )
                 Spacer(Modifier.height(10.dp))
             }
         }
@@ -446,7 +465,14 @@ private fun SectionCaption(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ReviewCard(review: Review) {
+private fun ReviewCard(
+    review: Review,
+    isOwnReview: Boolean,
+    onEditReview: () -> Unit = {  },
+    onDeleteReview: (Int) -> Unit = {  },
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     Card(
         modifier  = Modifier.fillMaxWidth(),
         shape     = RoundedCornerShape(12.dp),
@@ -497,5 +523,59 @@ private fun ReviewCard(review: Review) {
                 }
             }
         }
+
+        if (isOwnReview) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onEditReview) {
+                    Text("Edit")
+                }
+
+                TextButton(onClick = { showDeleteDialog = true }) {
+                    Text(
+                        text = stringResource(R.string.detail_delete_title),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+            },
+            title = {
+                Text(stringResource(R.string.detail_delete_title))
+            },
+            text = {
+                Text(stringResource(R.string.detail_delete_assurance))
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteReview(review.id)
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.detail_delete_title),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

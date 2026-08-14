@@ -127,8 +127,6 @@ class DefaultMediaRepository(private val sessionRepository: SessionRepository) {
         return response.body() ?: error("Empty body adding mediaId $mediaId to favorites")
     }
 
-
-
     suspend fun removeFavorite(mediaId: Int) {
         val response = api.removeFavorite(mediaId)
         if (!response.isSuccessful) {
@@ -147,22 +145,46 @@ class DefaultMediaRepository(private val sessionRepository: SessionRepository) {
         val body = WriteReviewRequest(mediaId, rating, reviewText, shareToFeed)
         val response = api.writeReview(body)
 
-        if (response.code() == 409) {
-            val updateResponse =
-                api.updateReview(mediaId, UpdateReviewRequest(rating, reviewText))
-
-            if (!updateResponse.isSuccessful) {
-                error(parseErrorMessage(updateResponse) ?: "Failed to update review")
-            }
-
-            return updateResponse.body() ?: error("Empty update response")
-        }
-
         if (!response.isSuccessful) {
             error(parseErrorMessage(response) ?: "Failed to create review")
         }
 
         return response.body() ?: error("Empty response")
+    }
+
+    suspend fun updateReview(
+        reviewId: Int,
+        rating: Int,
+        reviewText: String
+    ): Review {
+        val response = api.updateReview(
+            reviewId,
+            UpdateReviewRequest(
+                rating = rating,
+                reviewText = reviewText
+            )
+        )
+
+        if (!response.isSuccessful) {
+            error(
+                parseErrorMessage(response)
+                    ?: "Failed to update review"
+            )
+        }
+
+        return response.body()
+            ?: error("Empty response")
+    }
+
+    suspend fun removeReview(reviewId: Int) {
+        val response = api.removeReview(reviewId)
+
+        if (!response.isSuccessful) {
+            error(
+                parseErrorMessage(response)
+                    ?: "Failed to delete review"
+            )
+        }
     }
 
     suspend fun getReviews(mediaId: Int): List<Review>? {

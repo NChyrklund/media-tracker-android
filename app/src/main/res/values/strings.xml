@@ -120,6 +120,9 @@
     <string name="detail_runtime_minutes">%1$d min</string>
     <string name="detail_retry">Try Again</string>
     <string name="detail_not_found">This media item could not be found.</string>
+    <string name="detail_delete_title">Delete</string>
+    <string name="detail_delete_error">Review could not be deleted at this time</string>
+    <string name="detail_delete_assurance">Are you sure you want to delete your review? This action cannot be undone.</string>
 
     <!-- Media -->
     <string name="media_unknown_author">Unknown Author</string>
